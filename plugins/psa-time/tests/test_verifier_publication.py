@@ -1,4 +1,5 @@
 import getpass
+import sys
 import json
 import re
 from pathlib import Path
@@ -84,10 +85,17 @@ def test_mcp_plugin():
     assert "mcp__plugin_psa-time_edge__browser_run_code_unsafe" in saisir
 
 
-def test_skills_ont_un_frontmatter():
-    for skill in (PLUGIN / "skills").glob("*/SKILL.md"):
+def test_skills_ont_un_frontmatter_valide():
+    yaml = pytest.importorskip("yaml")
+    skills = list((PLUGIN / "skills").glob("*/SKILL.md"))
+    assert len(skills) == 3
+    for skill in skills:
         texte = skill.read_text(encoding="utf-8")
-        assert texte.startswith("---\n") and "\ndescription:" in texte.split("---")[1], skill
+        assert texte.startswith("---\n"), skill
+        # Un « : » non protégé dans une valeur casse le YAML et la skill perd sa description en silence.
+        meta = yaml.safe_load(texte.split("---")[1])
+        assert meta["name"] == skill.parent.name
+        assert len(meta["description"]) > 50
 
 
 def _fichiers_publies():
@@ -112,3 +120,39 @@ def test_aucune_donnee_personnelle():
         texte = p.read_text(encoding="utf-8", errors="replace").lower().replace("nasswiel", "")
         trouves += [f"{p.relative_to(DEPOT)} : {m}" for m in mots if m and m in texte]
     assert not trouves, trouves
+
+
+def _bloc_detection():
+    texte = (PLUGIN / "skills" / "prise-en-main" / "SKILL.md").read_text(encoding="utf-8")
+    m = re.search(r"<!-- detection:debut -->\s*```powershell\n(.*?)```", texte, re.S)
+    assert m, "bloc de détection introuvable dans prise-en-main"
+    return m.group(1)
+
+
+def _detecter(prefixe=""):
+    import subprocess
+
+    r = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", prefixe + _bloc_detection()],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+    )
+    return json.loads(r.stdout)
+
+
+CLES_DETECTION = {"python", "python_chemin", "python_alias_store", "py_lanceur", "node", "npx", "winget", "edge",
+                  "registre_npm", "proxy_npm", "dossier_reglages", "env_present", "config_presente"}
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="détection PowerShell propre à Windows")
+def test_detection_sur_ce_poste():
+    d = _detecter()
+    assert set(d) == CLES_DETECTION
+    assert d["python"] and d["python"].startswith("Python 3")
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="détection PowerShell propre à Windows")
+def test_detection_poste_sans_python_ni_node():
+    d = _detecter('$env:PATH = "$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0"; ')
+    assert set(d) == CLES_DETECTION
+    assert d["python"] is None and d["py_lanceur"] is None
+    assert d["node"] is None and d["npx"] is False

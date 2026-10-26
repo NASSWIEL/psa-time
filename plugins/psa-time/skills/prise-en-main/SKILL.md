@@ -12,16 +12,70 @@ Guide l'utilisateur pas à pas, en français, avec des messages courts. Une éta
 - Il l'enregistre **en brouillon** ; l'utilisateur relit et soumet lui-même. Rien n'est jamais soumis automatiquement.
 - Ses réglages vivent dans `%USERPROFILE%\.psa-time\` : `.env` (identifiants) et `config.toml` (projets, heures).
 
-## 2. Vérifier le poste
-Lancer :
+## 2. Détecter ce qui manque sur le poste
+
+### 2a. Détection de base (ne dépend de rien d'installé)
+Exécuter ce bloc avec l'outil PowerShell tel quel (s'il n'y a que l'outil Bash, le lancer via `powershell -NoProfile -Command "..."`). Ce n'est pas un fichier `.ps1`, la stratégie d'exécution ne le bloque donc pas.
+
+<!-- detection:debut -->
+```powershell
+$ErrorActionPreference = 'SilentlyContinue'
+function Sortie([string]$exe, [string[]]$arguments) {
+  if (-not (Get-Command $exe)) { return $null }
+  try { $s = & $exe @arguments 2>&1 | Select-Object -First 1; if ($s) { return "$s".Trim() } } catch {}
+  return $null
+}
+$reglages = Join-Path $env:USERPROFILE '.psa-time'
+$py = Get-Command python | Select-Object -First 1
+$edge = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+          "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
+          "$env:LOCALAPPDATA\Microsoft\Edge\Application\msedge.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+try { $registre = (Invoke-WebRequest 'https://registry.npmjs.org/@playwright%2Fmcp' -UseBasicParsing -Method Head -TimeoutSec 15).StatusCode }
+catch { $registre = "$($_.Exception.Message)" }
+[ordered]@{
+  python             = Sortie 'python' @('--version')
+  python_chemin      = $py.Source
+  python_alias_store = [bool]($py -and $py.Source -like '*\WindowsApps\*')
+  py_lanceur         = Sortie 'py' @('-3', '--version')
+  node               = Sortie 'node' @('--version')
+  npx                = [bool](Get-Command npx)
+  winget             = [bool](Get-Command winget)
+  edge               = $edge
+  registre_npm       = $registre
+  proxy_npm          = Sortie 'npm' @('config', 'get', 'https-proxy')
+  dossier_reglages   = $reglages
+  env_present        = Test-Path (Join-Path $reglages '.env')
+  config_presente    = Test-Path (Join-Path $reglages 'config.toml')
+} | ConvertTo-Json
+```
+<!-- detection:fin -->
+
+Interpréter chaque ligne avec ce tableau :
+
+| Élément | OK si | Sinon : quoi dire à l'utilisateur |
+|---|---|---|
+| Python | `python` vaut `Python 3.11` ou plus | Si `py_lanceur` vaut 3.11+ : OK, mais utiliser `py -3` à la place de `python` dans toutes les commandes du plugin. Si `python_alias_store` est vrai sans version : c'est l'alias Microsoft Store, pas un vrai Python. Sinon absent ou trop ancien. Correction : installer « Python 3.12 » depuis le Microsoft Store (sans droits admin), ou python.org avec « Install for current user » + « Add python.exe to PATH ». |
+| Node.js | `node` vaut `v18` ou plus | Si `winget` est vrai : `winget install OpenJS.NodeJS.LTS --scope user`. Sinon : .zip Windows sur nodejs.org, dézippé dans le dossier utilisateur, ajouté au PATH utilisateur. |
+| npx | vrai | Livré avec Node.js : réinstaller Node.js LTS. |
+| Edge | un chemin | Installer Microsoft Edge depuis le Centre logiciel CGI. |
+| Accès npm | `registre_npm` vaut `200` | Réseau ou proxy d'entreprise : réessayer hors VPN, ou demander l'adresse du proxy au support. |
+| Proxy npm | `null`, vide, ou une adresse | Si l'accès npm est OK mais que le téléchargement de Playwright échoue plus tard : `npm config set proxy http://<proxy>:<port>` et `npm config set https-proxy http://<proxy>:<port>`. |
+| Réglages | `env_present` et `config_presente` | Normal à la première installation : ils seront créés à l'étape 2c. |
+
+### 2b. Serveur navigateur du plugin
+Vérifier que les outils `mcp__plugin_psa-time_edge__*` sont disponibles (avec ToolSearch, requête `psa-time edge browser`). S'ils sont absents, le serveur n'a pas démarré : c'est presque toujours Node.js/npx manquant, ou installé après le lancement de Claude Code. L'utilisateur peut aussi le voir dans `/mcp` (`plugin:psa-time:edge`).
+
+### 2c. Contrôle complet (seulement si Python est OK)
 ```
 python "${CLAUDE_PLUGIN_ROOT}/outils/verifier.py" --json
 ```
-(Le premier lancement télécharge Playwright, cela peut prendre une à deux minutes.)
+(`py -3` à la place de `python` si c'est ce qui marche.) Il télécharge Playwright une première fois (une à deux minutes), confirme que tout s'exécute, et crée `.env` et `config.toml` depuis les modèles s'ils manquent.
 
-- `python` introuvable : expliquer d'installer Python 3.12 depuis le Microsoft Store (sans droits admin) ou python.org (« Install for current user » + « Add python.exe to PATH »), puis de relancer Claude Code. S'arrêter là.
-- Pour chaque contrôle `ok: false` hors `.env` et `config.toml` : donner sa `consigne` en étapes numérotées, proposer la commande exacte, ne rien installer sans accord.
-- Le script a créé `.env` et `config.toml` depuis les modèles s'ils manquaient : c'est attendu, on les remplit aux étapes suivantes.
+### 2d. Restituer et corriger
+- Afficher un tableau récapitulatif court : élément, état (OK / à corriger), action.
+- Corriger un point à la fois, dans l'ordre : Python, Node.js, Edge, réseau. Donner la commande exacte, ne rien installer sans accord.
+- **Après une installation de Python ou de Node.js, Claude Code doit être redémarré** : les logiciels installés pendant la session ne sont pas vus (PATH), et le serveur navigateur ne démarre qu'au lancement. Dire à l'utilisateur de quitter, relancer Claude Code puis `/psa-time:prise-en-main` : la prise en main reprend à la détection, rien n'est perdu.
+- Passer à l'étape 3 seulement quand Python, Node.js, npx et Edge sont OK et que le contrôle complet n'a plus de KO hors `.env` et `config.toml`.
 
 ## 3. Identifiants (`.env`)
 - Ouvrir le fichier pour l'utilisateur : `notepad "<chemin .env donné par le contrôle>"`.

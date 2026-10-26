@@ -5,8 +5,10 @@ description: Diagnostique un problème du plugin PSA Time (Python, Node.js, Edge
 
 # Diagnostic PSA Time
 
+> Si `python` est introuvable mais que `py -3 --version` répond 3.11 ou plus, remplacer `python` par `py -3` dans toutes les commandes ci-dessous.
+
 1. Lancer `python "${CLAUDE_PLUGIN_ROOT}/outils/verifier.py" --json --profil "${CLAUDE_PLUGIN_DATA}/edge"`.
-   - `python` introuvable : Python 3.12 via Microsoft Store ou python.org (« Install for current user » + « Add to PATH »), puis relancer Claude Code.
+   - `python` et `py` introuvables : exécuter d'abord la détection de base de `${CLAUDE_PLUGIN_ROOT}/skills/prise-en-main/SKILL.md` (étape 2a) et suivre son tableau.
 2. Traiter chaque contrôle `ok: false` dans l'ordre, avec sa `consigne`, en étapes numérotées. Proposer la commande exacte ; ne rien installer sans accord.
 3. `.env` : ne jamais le lire ni l'afficher. Proposer `notepad "<chemin>"` pour que l'utilisateur le corrige lui-même.
 4. `config.toml` : tu peux le lire et le corriger, puis valider avec `python "${CLAUDE_PLUGIN_ROOT}/outils/semaine.py"`.

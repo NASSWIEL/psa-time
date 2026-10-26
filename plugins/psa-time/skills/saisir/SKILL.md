@@ -1,6 +1,6 @@
 ---
 name: saisir
-description: Remplit la déclaration d'heures hebdomadaire PSA Time (CGI) dans Edge à partir de %USERPROFILE%\.psa-time\config.toml (un ou plusieurs projets), puis l'enregistre en brouillon sans la soumettre. À utiliser quand on demande de saisir, remplir ou enregistrer sa feuille de temps / PSA time. Argument optionnel : décalage de semaines (ex. -1 pour la semaine précédente).
+description: Remplit la déclaration d'heures hebdomadaire PSA Time (CGI) dans Edge à partir de %USERPROFILE%\.psa-time\config.toml (un ou plusieurs projets), puis l'enregistre en brouillon sans la soumettre. À utiliser quand on demande de saisir, remplir ou enregistrer sa feuille de temps / PSA time. Argument optionnel, le décalage de semaines (ex. -1 pour la semaine précédente).
 argument-hint: "[décalage de semaines, ex. -1]"
 ---
 
@@ -9,6 +9,8 @@ argument-hint: "[décalage de semaines, ex. -1]"
 Le travail navigateur est fait par des scripts Playwright déjà écrits et testés, générés avec le plan intégré dans `${CLAUDE_PLUGIN_DATA}/run/`. Tu les exécutes avec l'outil `mcp__plugin_psa-time_edge__browser_run_code_unsafe` et son paramètre `filename`, tu lis le résultat JSON et tu décides de la suite. N'improvise pas de clics : en cas de souci, consulte `${CLAUDE_PLUGIN_ROOT}/skills/saisir/selecteurs.md`.
 
 Notation : `RUN` = `${CLAUDE_PLUGIN_DATA}/run`, `OUTILS` = `${CLAUDE_PLUGIN_ROOT}/outils`.
+
+> Si `python` est introuvable mais que `py -3 --version` répond 3.11 ou plus, remplacer `python` par `py -3` dans toutes les commandes ci-dessous.
 
 ## Règles absolues
 - Ne jamais cliquer « Soumettre pour approb. » (`EX_TIME_HDR_WRK_PB_SUBMIT`). On s'arrête au brouillon.
