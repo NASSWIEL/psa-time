@@ -9,7 +9,7 @@ Guide l'utilisateur pas à pas, en français, avec des messages courts. Une éta
 
 ## 1. Présenter le plugin (3 lignes maximum)
 - Il remplit la feuille de temps PSA de la semaine : projets, heures, bloc « CGI Information additionnelles ».
-- Il l'enregistre **en brouillon** ; l'utilisateur relit et soumet lui-même. Rien n'est jamais soumis automatiquement.
+- Par défaut il l'enregistre **en brouillon** : l'utilisateur relit et soumet lui-même. Avec l'option `soumettre = true`, il la soumet directement pour approbation.
 - Ses réglages vivent dans `%USERPROFILE%\.psa-time\` : `.env` (identifiants) et `config.toml` (projets, heures).
 
 ## 2. Détecter ce qui manque sur le poste
@@ -87,7 +87,8 @@ Demander, en une seule question groupée :
 - le ou les codes projet PSA (visibles sur une ancienne feuille), et l'activité (souvent `PROJET`) ;
 - les heures par jour (ex. 7,4) et les jours travaillés sur chaque projet ;
 - la durée de la pause déjeuner (1 h par défaut) ;
-- la localisation : `auto` (première valeur proposée par PSA pour chaque jour, recommandé) ou une valeur fixe (`CGI`, `Regulier TLT`, `Site client`...).
+- la localisation : `auto` (première valeur proposée par PSA pour chaque jour, recommandé) ou une valeur fixe (`CGI`, `Regulier TLT`, `Site client`...) ;
+- brouillon (recommandé pour les premières semaines) ou soumission directe pour approbation (`soumettre = true`). Prévenir qu'une feuille soumise part chez l'approbateur.
 
 Puis écrire `%USERPROFILE%\.psa-time\config.toml` en suivant le modèle `${CLAUDE_PLUGIN_ROOT}/config.example.toml` (un bloc `[[projets]]` par projet, décimales avec un point) et valider :
 ```
@@ -115,5 +116,5 @@ Proposer d'ajouter dans `~/.claude/settings.json` (fusionner avec l'existant, mo
 ## 7. Conclure : mode d'emploi en 4 lignes
 - Chaque semaine : `/psa-time:saisir` (semaine en cours, date de fin = vendredi), ou `/psa-time:saisir -1` pour la semaine précédente.
 - Une fenêtre Edge dédiée s'ouvre, la feuille se remplit, un récapitulatif s'affiche.
-- Relire la feuille dans PSA puis cliquer soi-même « Soumettre pour approb. ».
+- En brouillon : relire la feuille dans PSA puis cliquer soi-même « Soumettre pour approb. ». Pour la soumission automatique : `soumettre = true` dans `config.toml`.
 - Jour férié, congé, changement de projet : modifier `jours` dans `config.toml`. Un souci : `/psa-time:diagnostic`.

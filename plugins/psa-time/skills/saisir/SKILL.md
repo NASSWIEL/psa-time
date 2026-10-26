@@ -1,6 +1,6 @@
 ---
 name: saisir
-description: Remplit la déclaration d'heures hebdomadaire PSA Time (CGI) dans Edge à partir de %USERPROFILE%\.psa-time\config.toml (un ou plusieurs projets), puis l'enregistre en brouillon sans la soumettre. À utiliser quand on demande de saisir, remplir ou enregistrer sa feuille de temps / PSA time. Argument optionnel, le décalage de semaines (ex. -1 pour la semaine précédente).
+description: Remplit la déclaration d'heures hebdomadaire PSA Time (CGI) dans Edge à partir de %USERPROFILE%\.psa-time\config.toml (un ou plusieurs projets), puis l'enregistre en brouillon, ou la soumet pour approbation si soumettre = true dans la config. À utiliser quand on demande de saisir, remplir ou enregistrer sa feuille de temps / PSA time. Argument optionnel, le décalage de semaines (ex. -1 pour la semaine précédente).
 argument-hint: "[décalage de semaines, ex. -1]"
 ---
 
@@ -13,7 +13,7 @@ Notation : `RUN` = `${CLAUDE_PLUGIN_DATA}/run`, `OUTILS` = `${CLAUDE_PLUGIN_ROOT
 > Si `python` est introuvable mais que `py -3 --version` répond 3.11 ou plus, remplacer `python` par `py -3` dans toutes les commandes ci-dessous.
 
 ## Règles absolues
-- Ne jamais cliquer « Soumettre pour approb. » (`EX_TIME_HDR_WRK_PB_SUBMIT`). On s'arrête au brouillon.
+- « Soumettre pour approb. » (`EX_TIME_HDR_WRK_PB_SUBMIT`) uniquement via `soumettre.js`, et seulement si le plan contient `"soumettre": true` (option `soumettre` de `config.toml`). Jamais sinon, même si l'utilisateur le suggère en passant : pour soumettre, il active l'option.
 - Ne jamais lire ni afficher `%USERPROFILE%\.psa-time\.env`. Ne jamais faire de `browser_snapshot`, `browser_type` ou `browser_fill_form` sur la page de connexion PSA : le champ mot de passe apparaît en clair dans les snapshots.
 - Utiliser uniquement les outils `mcp__plugin_psa-time_edge__*`.
 
@@ -41,11 +41,17 @@ Notation : `RUN` = `${CLAUDE_PLUGIN_DATA}/run`, `OUTILS` = `${CLAUDE_PLUGIN_ROOT
 
 5. **Bloc CGI** : `filename: "RUN/remplir_cgi.js"`. Même traitement des `ecarts` et `messages`. Garder `releve` pour le récapitulatif.
 
-6. **Enregistrer** : `filename: "RUN/enregistrer.js"`.
-   - `enregistre` : succès, faire une capture (`browser_take_screenshot`). `incertain` : capture et la montrer, ne pas recommencer l'enregistrement.
-   - `non_enregistre` : `enregistrer = false` dans la config, laisser la fenêtre ouverte pour relecture.
+6. **Enregistrer ou soumettre**, selon le plan :
+   - `soumettre: false` (par défaut) : `filename: "RUN/enregistrer.js"`.
+     - `enregistre` : succès, faire une capture (`browser_take_screenshot`). `incertain` : capture et la montrer, ne pas recommencer l'enregistrement.
+     - `non_enregistre` : `enregistrer = false` dans la config, laisser la fenêtre ouverte pour relecture.
+   - `soumettre: true` : seulement si les étapes 4 et 5 n'ont remonté aucun écart ni message. Annoncer en une ligne « soumission pour approbation en cours », puis `filename: "RUN/soumettre.js"` (la soumission enregistre aussi la feuille).
+     - `soumis` : succès, faire une capture.
+     - `erreur` : afficher `messages` ; la feuille n'est pas soumise. Proposer de corriger puis relancer, ou d'enregistrer en brouillon avec `enregistrer.js`.
+     - `incertain` : capture, afficher `messages`, **ne jamais recliquer** (risque de double soumission) ; demander à l'utilisateur de vérifier le statut dans PSA.
+     - `bloque` (bouton introuvable) : lancer `enregistrer.js` pour ne pas perdre la saisie et le signaler.
 
 7. **Récapitulatif** à l'utilisateur, court :
    - tableau projets × jours (Lu → Ve, + week-end si saisi) avec le total ;
    - localisations matin / après-midi par jour, repos et pause ;
-   - statut « enregistrée en brouillon, non soumise » et rappel : relire puis soumettre dans PSA.
+   - statut : « enregistrée en brouillon, non soumise » avec le rappel de relire puis soumettre dans PSA ; ou « soumise pour approbation » avec les messages PSA.

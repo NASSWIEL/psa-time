@@ -88,6 +88,26 @@ def test_plan_multi_projets(tmp_path):
     assert p["cgi"]["localisation_apres_midi"] == "T"
     assert any("jeudi" in a for a in p["avertissements"])  # 10,9 h
     assert p["enregistrer"] is True
+    assert p["soumettre"] is False  # brouillon par défaut
+
+
+def test_option_soumettre(tmp_path):
+    texte = CONFIG.replace("decalage_semaines = 0", "decalage_semaines = 0\nsoumettre = true")
+    assert plan(charger(ecrire(tmp_path, texte)), date(2026, 10, 26))["soumettre"] is True
+
+
+@pytest.mark.parametrize(
+    "ajout, message",
+    [
+        ("soumettre = true\nenregistrer = false", "demande aussi enregistrer"),
+        ('soumettre = "oui"', "true ou false"),
+        ('enregistrer = "non"', "true ou false"),
+    ],
+)
+def test_option_soumettre_invalide(tmp_path, ajout, message):
+    texte = CONFIG.replace("decalage_semaines = 0", "decalage_semaines = 0\n" + ajout)
+    with pytest.raises(ErreurConfig, match=message):
+        charger(ecrire(tmp_path, texte))
 
 
 def test_plan_bloc_cgi_meme_sans_heures(tmp_path):
@@ -151,7 +171,7 @@ def test_preparer_injecte_le_plan(tmp_path):
     p = plan(charger(ecrire(tmp_path, CONFIG)), date(2026, 10, 26))
     ecrits = preparer(p, tmp_path / "run")
     noms = {f.name for f in ecrits}
-    assert {"ouvrir_feuille.js", "saisir_projets.js", "remplir_cgi.js", "enregistrer.js"} <= noms
+    assert {"ouvrir_feuille.js", "saisir_projets.js", "remplir_cgi.js", "enregistrer.js", "soumettre.js"} <= noms
     for f in ecrits:
         contenu = f.read_text(encoding="utf-8")
         assert "/*PLAN*/null" not in contenu
@@ -166,11 +186,20 @@ def test_modeles_js_contiennent_le_marqueur():
         assert "/*PLAN*/null" in f.read_text(encoding="utf-8"), f.name
 
 
-def test_aucun_script_ne_soumet():
+def test_seul_soumettre_js_peut_soumettre():
     for f in semaine.DOSSIER_JS.iterdir():
+        if f.name == "soumettre.js":
+            continue
         for ligne in f.read_text(encoding="utf-8").splitlines():
             if "PB_SUBMIT" in ligne or "Soumettre" in ligne:
                 assert ligne.strip().startswith("//"), f"{f.name} : {ligne.strip()}"
+
+
+def test_soumettre_js_protege_par_l_option():
+    texte = (semaine.DOSSIER_JS / "soumettre.js").read_text(encoding="utf-8")
+    garde = texte.index("if (!PLAN.soumettre) return")
+    assert garde < texte.index("PB_SUBMIT")
+    assert garde < texte.index(".click(")
 
 
 def test_cli_erreur(tmp_path, capsys):

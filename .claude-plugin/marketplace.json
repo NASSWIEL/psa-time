@@ -9,7 +9,7 @@
     {
       "name": "psa-time",
       "source": "./plugins/psa-time",
-      "description": "Remplit la déclaration d'heures PSA de la semaine (projets, heures, bloc CGI) et l'enregistre en brouillon, sans jamais la soumettre",
+      "description": "Remplit la déclaration d'heures PSA de la semaine (projets, heures, bloc CGI) et l'enregistre en brouillon, ou la soumet pour approbation si l'option soumettre est activée",
       "category": "productivity"
     }
   ]

@@ -1,6 +1,6 @@
 # PSA Time pour Claude Code
 
-Marketplace Claude Code avec un plugin qui remplit ta feuille de temps PSA (CGI) de la semaine : projets, heures, bloc « CGI Information additionnelles ». La feuille est enregistrée **en brouillon** : tu relis et tu soumets toi-même, rien n'est jamais soumis automatiquement.
+Marketplace Claude Code avec un plugin qui remplit ta feuille de temps PSA (CGI) de la semaine : projets, heures, bloc « CGI Information additionnelles ». Par défaut la feuille est enregistrée **en brouillon** : tu relis et tu soumets toi-même. Avec `soumettre = true` dans ta config, elle est soumise directement pour approbation.
 
 ## Installation
 
@@ -42,7 +42,7 @@ Playwright n'est pas à installer : il est téléchargé automatiquement au prem
 | Commande | Rôle |
 |---|---|
 | `/psa-time:prise-en-main` | Point de départ : vérification du poste, réglages, mode d'emploi |
-| `/psa-time:saisir` | Remplit la semaine en cours (date de fin = vendredi) et l'enregistre en brouillon |
+| `/psa-time:saisir` | Remplit la semaine en cours (date de fin = vendredi) et l'enregistre en brouillon, ou la soumet si `soumettre = true` |
 | `/psa-time:saisir -1` | Même chose pour la semaine précédente |
 | `/psa-time:diagnostic` | Trouve et explique la cause d'un problème |
 
@@ -56,6 +56,8 @@ Tes réglages restent sur ton poste, dans `%USERPROFILE%\.psa-time\`, et survive
 | `config.toml` | projets, activité, heures, jours, pause, localisation | [`config.example.toml`](plugins/psa-time/config.example.toml) |
 
 Plusieurs projets dans la semaine : un bloc `[[projets]]` par projet, chacun avec ses jours. Jour férié ou congé : retire le jour de la liste `jours`.
+
+Soumission automatique : dans `[execution]`, `soumettre = true` soumet la feuille pour approbation au lieu de l'enregistrer en brouillon. La feuille part alors chez ton approbateur : garde `false` tant que tu n'as pas vérifié tes réglages sur quelques semaines. Si PSA signale une erreur, rien n'est soumis et le message s'affiche.
 
 ## Sécurité
 

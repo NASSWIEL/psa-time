@@ -117,6 +117,12 @@ def charger(chemin: Path = CONFIG) -> dict:
 
     cgi = brut.get("cgi_information", {})
     execution = brut.get("execution", {})
+    enregistrer = execution.get("enregistrer", True)
+    soumettre = execution.get("soumettre", False)
+    if not isinstance(enregistrer, bool) or not isinstance(soumettre, bool):
+        raise ErreurConfig("enregistrer et soumettre doivent valoir true ou false (sans guillemets).")
+    if soumettre and not enregistrer:
+        raise ErreurConfig("soumettre = true demande aussi enregistrer = true.")
     decalage = execution.get("decalage_semaines", 0)
     if isinstance(decalage, bool) or not isinstance(decalage, int):
         raise ErreurConfig("decalage_semaines doit être un entier (0, -1, ...).")
@@ -132,7 +138,8 @@ def charger(chemin: Path = CONFIG) -> dict:
         "localisation_matin": _localisation(cgi.get("localisation_matin", "auto"), "localisation_matin"),
         "localisation_apres_midi": _localisation(cgi.get("localisation_apres_midi", "auto"), "localisation_apres_midi"),
         "decalage_semaines": decalage,
-        "enregistrer": bool(execution.get("enregistrer", True)),
+        "enregistrer": enregistrer,
+        "soumettre": soumettre,
     }
 
 
@@ -173,6 +180,7 @@ def plan(config: dict, aujourdhui: date, decalage: int | None = None) -> dict:
             "localisation_apres_midi": config["localisation_apres_midi"],
         },
         "enregistrer": config["enregistrer"],
+        "soumettre": config["soumettre"],
         "avertissements": avertissements,
     }
 

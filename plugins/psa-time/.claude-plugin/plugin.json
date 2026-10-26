@@ -1,8 +1,8 @@
 {
   "name": "psa-time",
   "displayName": "PSA Time",
-  "version": "1.0.1",
-  "description": "Remplit la déclaration d'heures PSA de la semaine (projets, heures, bloc CGI) dans Edge et l'enregistre en brouillon, sans jamais la soumettre. Commencer par /psa-time:prise-en-main.",
+  "version": "1.1.0",
+  "description": "Remplit la déclaration d'heures PSA de la semaine (projets, heures, bloc CGI) dans Edge et l'enregistre en brouillon, ou la soumet pour approbation si l'option soumettre est activée. Commencer par /psa-time:prise-en-main.",
   "author": {
     "name": "NASSWIEL",
     "url": "https://github.com/NASSWIEL"

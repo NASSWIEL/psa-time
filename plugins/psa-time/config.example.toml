@@ -39,5 +39,8 @@ localisation_apres_midi = "auto"
 [execution]
 # Semaine cible : 0 = semaine en cours (vendredi de cette semaine), -1 = semaine précédente.
 decalage_semaines = 0
-# true = clique « Enreg. brouill. » à la fin. La feuille n'est jamais soumise automatiquement.
+# true = clique « Enreg. brouill. » à la fin (brouillon, tu relis et tu soumets toi-même).
 enregistrer = true
+# true = soumet directement la feuille pour approbation (« Soumettre pour approb. ») au lieu du brouillon.
+# Une feuille soumise part chez ton approbateur : active-le seulement une fois tes réglages bien vérifiés.
+soumettre = false
