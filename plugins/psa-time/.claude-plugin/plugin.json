@@ -1,0 +1,13 @@
+{
+  "name": "psa-time",
+  "displayName": "PSA Time",
+  "version": "1.0.0",
+  "description": "Remplit la déclaration d'heures PSA de la semaine (projets, heures, bloc CGI) dans Edge et l'enregistre en brouillon, sans jamais la soumettre. Commencer par /psa-time:prise-en-main.",
+  "author": {
+    "name": "NASSWIEL",
+    "url": "https://github.com/NASSWIEL"
+  },
+  "homepage": "https://github.com/NASSWIEL/psa-time",
+  "repository": "https://github.com/NASSWIEL/psa-time",
+  "keywords": ["cgi", "psa", "peoplesoft", "timesheet", "feuille-de-temps", "playwright"]
+}

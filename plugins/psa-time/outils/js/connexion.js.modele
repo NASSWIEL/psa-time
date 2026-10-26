@@ -1,0 +1,44 @@
+async (page) => {
+  // Ne renvoie jamais les identifiants : uniquement des booléens et des messages PSA.
+  const URL_PSA = 'https://psa-fs.ent.cgi.com/psp/fsprda/?cmd=login&languageCd=CFR&';
+  await page.goto(URL_PSA, { waitUntil: 'domcontentloaded' });
+
+  const champUser = page.getByRole('textbox', { name: /Utilisateur/ });
+  const champMdp = page.getByRole('textbox', { name: /Mot de passe/ });
+  const surLogin = await champUser.isVisible({ timeout: 8000 }).catch(() => false);
+  if (!surLogin) {
+    return { connecte: true, deja: true, url: page.url() };
+  }
+
+  const rep = await page.request.get('__URL_ENV__');
+  if (!rep.ok()) return { connecte: false, erreur: 'serveur .env injoignable (relancer outils/servir_env.py)' };
+  const env = {};
+  for (const l of (await rep.text()).split(/\r?\n/)) {
+    const i = l.indexOf('=');
+    if (i > 0 && !l.trim().startsWith('#')) env[l.slice(0, i).trim().replace(/^﻿/, '').toLowerCase()] = l.slice(i + 1).trim().replace(/^["']|["']$/g, '');
+  }
+  const user = (env.utilisateur || '').replace(/@cgi\.com$/i, '');
+  if (!user || !env.mdp) return { connecte: false, erreur: 'utilisateur ou mdp vide dans .env' };
+
+  // Le bouton a pour nom accessible « Pour activer le mode Lecteur... » : on le cible par son texte visible.
+  const bouton = page.locator('button, input[type="submit"], input[type="button"]').filter({ hasText: /Connexion/ })
+    .or(page.locator('input[type="submit"][value*="Connexion"]')).first();
+  try {
+    await champUser.fill(user);
+    await champMdp.fill(env.mdp);
+    await bouton.click({ timeout: 10000 });
+  } catch (e) {
+    await champMdp.fill('').catch(() => {});
+    return { connecte: false, erreur: 'formulaire de connexion PSA inattendu : ' + String(e.message || e).split('\n')[0] };
+  }
+
+  await page.waitForURL(u => !/cmd=login/.test(u.toString()), { timeout: 30000 }).catch(() => {});
+  const encoreLogin = await champUser.isVisible({ timeout: 2000 }).catch(() => false);
+  if (encoreLogin) {
+    // Vider le mot de passe pour qu'aucune capture ultérieure ne puisse l'afficher.
+    await champMdp.fill('').catch(() => {});
+    const msg = await page.locator('#login_error, .ps_login-error, .PSERRORTEXT').allInnerTexts().catch(() => []);
+    return { connecte: false, erreur: 'connexion refusée par PSA', message: msg.join(' ').trim() };
+  }
+  return { connecte: true, deja: false, url: page.url() };
+}

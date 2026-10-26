@@ -1,0 +1,16 @@
+{
+  "name": "psa-time",
+  "description": "Saisie automatique de la feuille de temps PSA (CGI) avec Claude Code",
+  "owner": {
+    "name": "NASSWIEL",
+    "url": "https://github.com/NASSWIEL"
+  },
+  "plugins": [
+    {
+      "name": "psa-time",
+      "source": "./plugins/psa-time",
+      "description": "Remplit la déclaration d'heures PSA de la semaine (projets, heures, bloc CGI) et l'enregistre en brouillon, sans jamais la soumettre",
+      "category": "productivity"
+    }
+  ]
+}

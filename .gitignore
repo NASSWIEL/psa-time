@@ -1,0 +1,8 @@
+.env
+config.toml
+run/
+.playwright-mcp/
+*.png
+__pycache__/
+.pytest_cache/
+.claude/settings.local.json

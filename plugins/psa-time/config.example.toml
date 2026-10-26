@@ -1,0 +1,43 @@
+# Réglages de ta déclaration d'heures PSA Time.
+# /psa-time:prise-en-main le copie dans %USERPROFILE%\.psa-time\config.toml : c'est cette copie que tu modifies.
+# Modifie les valeurs à droite du signe =, garde les guillemets. Décimales avec un point : 7.4
+
+# Un bloc [[projets]] par ligne de la feuille PSA. Copie-colle le bloc pour ajouter un projet.
+[[projets]]
+# Code projet tel qu'il apparaît dans PSA (ex. "300000000012345").
+code = "A_REMPLIR"
+# Code activité, celui proposé par la loupe du champ Activ. (souvent "PROJET").
+activite = "PROJET"
+# Heures saisies pour chaque jour listé ci-dessous.
+heures_par_jour = 7.4
+# Jours travaillés sur ce projet : lundi, mardi, mercredi, jeudi, vendredi (samedi, dimanche possibles).
+# Retire un jour férié, de congé ou travaillé sur un autre projet.
+jours = ["lundi", "mardi", "mercredi", "jeudi", "vendredi"]
+
+# Exemple de deuxième projet (enlève les # pour l'activer) :
+# [[projets]]
+# code = "300000000067890"
+# activite = "PROJET"
+# heures_par_jour = 7.4
+# jours = ["jeudi", "vendredi"]
+
+[cgi_information]
+# Bloc « CGI Information additionnelles - France », rempli du lundi au vendredi
+# (même un jour sans heures), plus les jours de week-end travaillés.
+# Valeurs possibles : "Oui", "Non", "N/A".
+repos_11h = "Oui"
+plage_8h_10h_16h30_19h = "Oui"
+plus_demi_journee = "Oui"
+# Durée de la pause déjeuner, en heures.
+duree_pause = 1.0
+# Localisation Matin / Après-midi.
+# "auto" = la première valeur proposée par PSA pour chaque jour (rubrique « Plus pertinentes »).
+# Sinon, une valeur fixe : "CGI", "Regulier TLT", "Ponctuel TLT", "Exceptionel TLT", "Site client"...
+localisation_matin = "auto"
+localisation_apres_midi = "auto"
+
+[execution]
+# Semaine cible : 0 = semaine en cours (vendredi de cette semaine), -1 = semaine précédente.
+decalage_semaines = 0
+# true = clique « Enreg. brouill. » à la fin. La feuille n'est jamais soumise automatiquement.
+enregistrer = true
