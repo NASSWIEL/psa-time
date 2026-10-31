@@ -11,14 +11,21 @@ async (page) => {
   }
 
   const rep = await page.request.get('__URL_ENV__');
-  if (!rep.ok()) return { connecte: false, erreur: 'serveur .env injoignable (relancer outils/servir_env.py)' };
-  const env = {};
-  for (const l of (await rep.text()).split(/\r?\n/)) {
-    const i = l.indexOf('=');
-    if (i > 0 && !l.trim().startsWith('#')) env[l.slice(0, i).trim().replace(/^﻿/, '').toLowerCase()] = l.slice(i + 1).trim().replace(/^["']|["']$/g, '');
+  if (!rep.ok()) return { connecte: false, erreur: 'serveur local injoignable (relancer outils/servir_env.py)' };
+  const texte = await rep.text();
+  let env = {};
+  // Coffre Windows et mode manuel : JSON. Ancien .env : lignes cle=valeur.
+  if (texte.trimStart().startsWith('{')) {
+    try { env = JSON.parse(texte); } catch (e) { env = {}; }
+  } else {
+    for (const l of texte.split(/\r?\n/)) {
+      const i = l.indexOf('=');
+      if (i > 0 && !l.trim().startsWith('#')) env[l.slice(0, i).trim().replace(/^﻿/, '').toLowerCase()] = l.slice(i + 1).trim().replace(/^["']|["']$/g, '');
+    }
   }
+  if (env.manuel) return { connecte: false, manuel: true, erreur: 'aucun identifiant enregistré : connexion à faire dans la fenêtre Edge' };
   const user = (env.utilisateur || '').replace(/@cgi\.com$/i, '');
-  if (!user || !env.mdp) return { connecte: false, erreur: 'utilisateur ou mdp vide dans .env' };
+  if (!user || !env.mdp) return { connecte: false, erreur: 'identifiants incomplets' };
 
   // Le bouton a pour nom accessible « Pour activer le mode Lecteur... » : on le cible par son texte visible.
   const bouton = page.locator('button, input[type="submit"], input[type="button"]').filter({ hasText: /Connexion/ })

@@ -1,6 +1,7 @@
 """Vérifie que le poste peut lancer la saisie PSA Time et explique quoi faire sinon.
 
-Crée aussi les fichiers personnels manquants (~/.psa-time/.env et config.toml) depuis les modèles du plugin.
+Crée aussi config.toml s'il manque (depuis le modèle du plugin). Les identifiants PSA sont dans le coffre
+d'identifiants Windows (identifiants.py), jamais dans un fichier.
 
 Usage :
     python verifier.py                 # rapport lisible
@@ -137,18 +138,28 @@ def creer_depuis_modele(cible: Path, modele: str) -> bool:
     return True
 
 
-def controle_env() -> Controle:
+def controle_identifiants() -> Controle:
+    import identifiants
     from servir_env import verifier_env
 
-    cree = creer_depuis_modele(ENV, ".env.example")
-    problemes = verifier_env(ENV)
-    if not problemes:
-        return Controle(".env", True, f"{ENV.as_posix()} : utilisateur et mdp renseignés")
+    outil = (CODE / "outils" / "identifiants.py").as_posix()
+    if identifiants.present():
+        return Controle("Identifiants PSA", True, "dans le coffre d'identifiants Windows")
+    if ENV.exists() and not verifier_env(ENV):
+        return Controle(
+            "Identifiants PSA",
+            True,
+            f"ancien fichier {ENV.as_posix()} (encore accepté)",
+            f"Conseillé : `python \"{outil}\" migrer` pour les ranger dans le coffre Windows et supprimer le fichier.",
+            bloquant=False,
+        )
     return Controle(
-        ".env",
+        "Identifiants PSA",
         False,
-        f"{ENV.as_posix()} " + ("créé depuis le modèle" if cree else ": " + " ; ".join(problemes)),
-        f"Ouvre {ENV} (ex. `notepad \"{ENV}\"`) et renseigne utilisateur (sans @cgi.com) et mdp.",
+        "aucun identifiant enregistré : il faudra se connecter à la main dans la fenêtre Edge",
+        f"Lance `python \"{outil}\" enregistrer` : une fenêtre s'ouvre, tape ton identifiant et ton mot de passe "
+        "une seule fois (gardés chiffrés par Windows, jamais dans un fichier).",
+        bloquant=False,
     )
 
 
@@ -191,7 +202,7 @@ def verifier(rapide: bool = False, profil: Path | None = None) -> list[Controle]
     controles = [controle_systeme(), controle_python(), controle_node(), controle_npx(), controle_edge()]
     if not rapide:
         controles.append(controle_mcp())
-    controles += [controle_env(), controle_config()]
+    controles += [controle_identifiants(), controle_config()]
     if profil:
         controles.append(controle_profil(profil))
     return controles

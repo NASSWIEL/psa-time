@@ -1,6 +1,6 @@
 ---
 name: prise-en-main
-description: Point de départ du plugin PSA Time. Explique ce que fait le plugin, vérifie le poste, crée et aide à remplir les fichiers personnels (.env et config.toml dans %USERPROFILE%\.psa-time), puis montre comment saisir sa feuille chaque semaine. À utiliser juste après l'installation du plugin, ou quand l'utilisateur demande par où commencer, comment configurer ou utiliser PSA Time.
+description: Point de départ du plugin PSA Time. Explique ce que fait le plugin, vérifie le poste, range les identifiants PSA une seule fois dans le coffre d'identifiants Windows, crée et aide à remplir config.toml dans %USERPROFILE%\.psa-time, puis montre comment saisir sa feuille chaque semaine. À utiliser juste après l'installation du plugin, ou quand l'utilisateur demande par où commencer, comment configurer ou utiliser PSA Time.
 ---
 
 # Prise en main de PSA Time
@@ -10,7 +10,7 @@ Guide l'utilisateur pas à pas, en français, avec des messages courts. Une éta
 ## 1. Présenter le plugin (3 lignes maximum)
 - Il remplit la feuille de temps PSA de la semaine : projets, heures, bloc « CGI Information additionnelles ».
 - Par défaut il l'enregistre **en brouillon** : l'utilisateur relit et soumet lui-même. Avec l'option `soumettre = true`, il la soumet directement pour approbation.
-- Ses réglages vivent dans `%USERPROFILE%\.psa-time\` : `.env` (identifiants) et `config.toml` (projets, heures).
+- Ses réglages vivent dans `%USERPROFILE%\.psa-time\config.toml` (projets, heures). Les identifiants PSA sont tapés une seule fois dans une petite fenêtre et gardés dans le coffre d'identifiants Windows, jamais dans un fichier ni dans la conversation.
 
 ## 2. Détecter ce qui manque sur le poste
 
@@ -60,7 +60,7 @@ Interpréter chaque ligne avec ce tableau :
 | Edge | un chemin | Installer Microsoft Edge depuis le Centre logiciel CGI. |
 | Accès npm | `registre_npm` vaut `200` | Réseau ou proxy d'entreprise : réessayer hors VPN, ou demander l'adresse du proxy au support. |
 | Proxy npm | `null`, vide, ou une adresse | Si l'accès npm est OK mais que le téléchargement de Playwright échoue plus tard : `npm config set proxy http://<proxy>:<port>` et `npm config set https-proxy http://<proxy>:<port>`. |
-| Réglages | `env_present` et `config_presente` | Normal à la première installation : ils seront créés à l'étape 2c. |
+| Réglages | `config_presente` | Normal à la première installation : il sera créé à l'étape 2c. `env_present` vrai = ancien fichier d'identifiants, à migrer à l'étape 3. |
 
 ### 2b. Serveur navigateur du plugin
 Vérifier que les outils `mcp__plugin_psa-time_edge__*` sont disponibles (avec ToolSearch, requête `psa-time edge browser`). S'ils sont absents, le serveur n'a pas démarré : c'est presque toujours Node.js/npx manquant, ou installé après le lancement de Claude Code. L'utilisateur peut aussi le voir dans `/mcp` (`plugin:psa-time:edge`).
@@ -69,18 +69,20 @@ Vérifier que les outils `mcp__plugin_psa-time_edge__*` sont disponibles (avec T
 ```
 python "${CLAUDE_PLUGIN_ROOT}/outils/verifier.py" --json
 ```
-(`py -3` à la place de `python` si c'est ce qui marche.) Il télécharge Playwright une première fois (une à deux minutes), confirme que tout s'exécute, et crée `.env` et `config.toml` depuis les modèles s'ils manquent.
+(`py -3` à la place de `python` si c'est ce qui marche.) Il télécharge Playwright une première fois (une à deux minutes), confirme que tout s'exécute, et crée `config.toml` depuis le modèle s'il manque.
 
 ### 2d. Restituer et corriger
 - Afficher un tableau récapitulatif court : élément, état (OK / à corriger), action.
 - Corriger un point à la fois, dans l'ordre : Python, Node.js, Edge, réseau. Donner la commande exacte, ne rien installer sans accord.
 - **Après une installation de Python ou de Node.js, Claude Code doit être redémarré** : les logiciels installés pendant la session ne sont pas vus (PATH), et le serveur navigateur ne démarre qu'au lancement. Dire à l'utilisateur de quitter, relancer Claude Code puis `/psa-time:prise-en-main` : la prise en main reprend à la détection, rien n'est perdu.
-- Passer à l'étape 3 seulement quand Python, Node.js, npx et Edge sont OK et que le contrôle complet n'a plus de KO hors `.env` et `config.toml`.
+- Passer à l'étape 3 seulement quand Python, Node.js, npx et Edge sont OK et que le contrôle complet n'a plus de KO hors identifiants et `config.toml`.
 
-## 3. Identifiants (`.env`)
-- Ouvrir le fichier pour l'utilisateur : `notepad "<chemin .env donné par le contrôle>"`.
-- Lui dire d'y mettre `utilisateur=prenom.nom` (sans @cgi.com) et `mdp=...`, d'enregistrer et de fermer.
-- **Ne jamais lire, afficher, éditer ce fichier toi-même, ni demander le mot de passe dans la conversation.** S'il le colle quand même, lui conseiller de le changer.
+## 3. Identifiants (une seule fois, coffre Windows)
+- Contrôle « Identifiants PSA » OK avec « coffre » : rien à faire.
+- Ancien fichier `.env` signalé : proposer `python "${CLAUDE_PLUGIN_ROOT}/outils/identifiants.py" migrer`. Il copie les identifiants dans le coffre, vérifie qu'il les relit, puis supprime le `.env`.
+- Sinon : prévenir qu'une petite fenêtre « PSA Time : connexion » va s'ouvrir (parfois derrière les autres fenêtres), puis lancer `python "${CLAUDE_PLUGIN_ROOT}/outils/identifiants.py" enregistrer` avec un délai long (10 minutes). L'utilisateur y tape son identifiant (sans @cgi.com) et son mot de passe, puis clique « Enregistrer ». Sortie `OK` : c'est fait. `ANNULE` : il pourra le faire plus tard, la saisie marchera quand même en se connectant à la main dans Edge.
+- **Ne jamais demander, lire, afficher ni écrire le mot de passe toi-même, ni dans la conversation, ni dans un fichier.** S'il le colle quand même, lui conseiller de le changer puis de relancer `identifiants.py enregistrer`.
+- Mot de passe CGI changé plus tard : relancer `identifiants.py enregistrer`, la fenêtre propose l'identifiant déjà connu.
 
 ## 4. Réglages (`config.toml`)
 Demander, en une seule question groupée :
@@ -111,7 +113,7 @@ Proposer d'ajouter dans `~/.claude/settings.json` (fusionner avec l'existant, mo
 }
 ```
 - `allow` : plus de demande de validation à chaque action du navigateur.
-- `deny` : garantit que Claude ne lira jamais le fichier d'identifiants.
+- `deny` : garantit que Claude ne lira jamais un ancien fichier d'identifiants s'il en reste un.
 
 ## 7. Conclure : mode d'emploi en 4 lignes
 - Chaque semaine : `/psa-time:saisir` (semaine en cours, date de fin = vendredi), ou `/psa-time:saisir -1` pour la semaine précédente.

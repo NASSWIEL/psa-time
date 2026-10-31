@@ -48,11 +48,13 @@ Playwright n'est pas à installer : il est téléchargé automatiquement au prem
 
 ## Tes fichiers
 
-Tes réglages restent sur ton poste, dans `%USERPROFILE%\.psa-time\`, et survivent aux mises à jour du plugin :
+Tes réglages restent sur ton poste, dans `%USERPROFILE%\.psa-time\`, et survivent aux mises à jour du plugin.
+
+Ton identifiant et ton mot de passe PSA ne sont dans aucun fichier : tu les tapes **une seule fois** dans une petite fenêtre (`/psa-time:prise-en-main` la lance), et ils sont gardés dans le Gestionnaire d'identifiants Windows, chiffrés pour ta session. Mot de passe changé : relance `python outils/identifiants.py enregistrer`. Tu peux aussi ne rien enregistrer et te connecter toi-même dans la fenêtre Edge quand PSA le demande.
+
 
 | Fichier | Contenu | Modèle |
 |---|---|---|
-| `.env` | identifiant CGI (sans @cgi.com) et mot de passe PSA | [`.env.example`](plugins/psa-time/.env.example) |
 | `config.toml` | projets, activité, heures, jours, pause, localisation | [`config.example.toml`](plugins/psa-time/config.example.toml) |
 
 Plusieurs projets dans la semaine : un bloc `[[projets]]` par projet, chacun avec ses jours. Jour férié ou congé : retire le jour de la liste `jours`.
@@ -61,9 +63,10 @@ Soumission automatique : dans `[execution]`, `soumettre = true` soumet la feuill
 
 ## Sécurité
 
-- Le mot de passe n'est lu que par Playwright, via un serveur local à usage unique (127.0.0.1, jeton aléatoire). Il ne passe jamais dans la conversation.
+- Le mot de passe n'est jamais demandé dans la conversation ni écrit dans un fichier : il vit dans le coffre d'identifiants Windows (même mécanisme que les mots de passe enregistrés par Windows).
+- Il n'est lu que si PSA affiche la page de connexion : le profil Edge dédié du plugin garde la session entre deux saisies. Il passe alors au navigateur par un serveur local à usage unique (127.0.0.1, jeton aléatoire).
 - Le plugin n'utilise qu'un profil Edge dédié ; ton Edge habituel n'est pas touché.
-- `/psa-time:prise-en-main` propose une règle qui interdit à Claude de lire `.env`.
+- Ancien fichier `.env` d'une version précédente : il marche encore, et `python outils/identifiants.py migrer` le range dans le coffre puis le supprime.
 - Ne colle jamais ton mot de passe dans une conversation.
 
 ## Mise à jour

@@ -14,7 +14,7 @@ Notation : `RUN` = `${CLAUDE_PLUGIN_DATA}/run`, `OUTILS` = `${CLAUDE_PLUGIN_ROOT
 
 ## Règles absolues
 - « Soumettre pour approb. » (`EX_TIME_HDR_WRK_PB_SUBMIT`) uniquement via `soumettre.js`, et seulement si le plan contient `"soumettre": true` (option `soumettre` de `config.toml`). Jamais sinon, même si l'utilisateur le suggère en passant : pour soumettre, il active l'option.
-- Ne jamais lire ni afficher `%USERPROFILE%\.psa-time\.env`. Ne jamais faire de `browser_snapshot`, `browser_type` ou `browser_fill_form` sur la page de connexion PSA : le champ mot de passe apparaît en clair dans les snapshots.
+- Ne jamais demander, lire ni afficher le mot de passe (coffre Windows ou ancien `%USERPROFILE%\.psa-time\.env`). Ne jamais faire de `browser_snapshot`, `browser_type` ou `browser_fill_form` sur la page de connexion PSA : le champ mot de passe apparaît en clair dans les snapshots.
 - Utiliser uniquement les outils `mcp__plugin_psa-time_edge__*`.
 
 ## Étapes
@@ -24,9 +24,11 @@ Notation : `RUN` = `${CLAUDE_PLUGIN_DATA}/run`, `OUTILS` = `${CLAUDE_PLUGIN_ROOT
    - Montrer en une ligne : semaine, projets, total, avertissements éventuels.
 
 2. **Connexion** :
-   - Lancer en arrière-plan `python "OUTILS/servir_env.py" --run "RUN"`. Il écrit `RUN/connexion.js` puis attend 90 s. S'il affiche `ERREUR` (`.env` absent ou vide), proposer `/psa-time:prise-en-main` et s'arrêter.
+   - Lancer en arrière-plan `python "OUTILS/servir_env.py" --run "RUN"`. Il affiche `SOURCE : coffre | env | manuel`, écrit `RUN/connexion.js` puis attend 90 s. Le profil Edge du plugin garde la session : si PSA est encore connecté, rien n'est transmis (message « Rien transmis », normal).
    - `browser_run_code_unsafe` avec `filename: "RUN/connexion.js"`. Réponse ENOENT (fichier pas encore écrit) : réessayer immédiatement, c'est normal au premier appel.
-   - `connecte: false` : afficher `erreur` / `message`, ne pas réessayer en boucle (risque de verrouillage du compte). MFA ou écran inattendu : l'utilisateur termine dans la fenêtre Edge, puis reprendre.
+   - `connecte: true` : continuer. Si `SOURCE : env`, proposer en fin de saisie `python "OUTILS/identifiants.py" migrer` (range les identifiants dans le coffre Windows et supprime le `.env`).
+   - `manuel: true` (aucun identifiant enregistré) : dire à l'utilisateur de se connecter lui-même dans la fenêtre Edge, attendre qu'il confirme, puis passer à l'étape 3 (si elle répond `deconnecte`, il n'a pas fini). En fin de saisie, proposer `python "OUTILS/identifiants.py" enregistrer` pour ne plus avoir à le faire.
+   - `connecte: false` avec « connexion refusée » : mot de passe sans doute changé. Ne pas réessayer en boucle (risque de verrouillage du compte) : proposer `python "OUTILS/identifiants.py" enregistrer` (fenêtre de saisie, délai long), puis reprendre l'étape 2. MFA ou écran inattendu : l'utilisateur termine dans la fenêtre Edge, puis reprendre.
    - « Browser is already in use » : une fenêtre Edge d'une saisie précédente est encore ouverte. Demander de la fermer, puis réessayer.
    - Serveur MCP absent ou en échec : proposer `/psa-time:diagnostic`.
 

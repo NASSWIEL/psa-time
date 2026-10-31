@@ -1,14 +1,18 @@
-"""Transmet les identifiants de .env au navigateur Playwright sans qu'ils passent dans la conversation.
+"""Transmet les identifiants PSA au navigateur Playwright sans qu'ils passent dans la conversation.
 
-Le bac à sable de browser_run_code_unsafe n'a pas accès au disque : ce script sert .env une seule fois
-sur 127.0.0.1, à une adresse contenant un jeton aléatoire, et écrit <run>/connexion.js avec cette
-adresse. La skill exécute ensuite ce fichier, qui lit les identifiants et se connecte à PSA.
+Source, dans l'ordre : coffre d'identifiants Windows (identifiants.py), sinon ancien fichier .env, sinon mode
+manuel (la personne se connecte elle-même dans la fenêtre Edge, rien n'est transmis).
+
+Le bac à sable de browser_run_code_unsafe n'a pas accès au disque : ce script sert les identifiants une seule
+fois sur 127.0.0.1, à une adresse contenant un jeton aléatoire, et écrit <run>/connexion.js avec cette
+adresse. La skill exécute ensuite ce fichier, qui ne lit les identifiants que si PSA affiche la page de login.
 
 Usage (en arrière-plan) : python servir_env.py --run DIR
 """
 
 import argparse
 import http.server
+import json
 import secrets
 import sys
 import time
@@ -42,6 +46,21 @@ def verifier_env(chemin: Path) -> list[str]:
         if not v or v.upper() == "A_REMPLIR":
             problemes.append(f"{cle} est vide dans .env")
     return problemes
+
+
+def identifiants_a_servir(env: Path) -> tuple[bytes, str]:
+    """Contenu à servir au navigateur et sa source : « coffre », « env » ou « manuel »."""
+    import identifiants
+
+    try:
+        trouve = identifiants.lire()
+    except identifiants.ErreurCoffre:
+        trouve = None
+    if trouve and trouve[0] and trouve[1]:
+        return json.dumps({"utilisateur": trouve[0], "mdp": trouve[1]}).encode("utf-8"), "coffre"
+    if env.exists() and not verifier_env(env):
+        return env.read_bytes(), "env"
+    return json.dumps({"manuel": True}).encode("utf-8"), "manuel"
 
 
 def creer_serveur(contenu: bytes, jeton: str) -> http.server.HTTPServer:
@@ -86,13 +105,11 @@ def main(argv=None) -> int:
     parser.add_argument("--delai", type=float, default=90, help="secondes d'attente maximum")
     args = parser.parse_args(argv)
 
-    problemes = verifier_env(args.env)
-    if problemes:
-        print("ERREUR : " + " ; ".join(problemes), flush=True)
-        return 1
+    contenu, source = identifiants_a_servir(args.env)
+    print(f"SOURCE : {source}", flush=True)
 
     jeton = secrets.token_urlsafe(24)
-    serveur = creer_serveur(args.env.read_bytes(), jeton)
+    serveur = creer_serveur(contenu, jeton)
     url = f"http://127.0.0.1:{serveur.server_address[1]}/{jeton}"
 
     args.run.mkdir(parents=True, exist_ok=True)
@@ -105,7 +122,7 @@ def main(argv=None) -> int:
     finally:
         serveur.server_close()
         script.unlink(missing_ok=True)
-    print("Identifiants transmis." if ok else "Délai dépassé, rien transmis.", flush=True)
+    print("Identifiants transmis." if ok else "Rien transmis (normal si la session PSA était encore ouverte).", flush=True)
     return 0 if ok else 2
 
 

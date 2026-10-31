@@ -28,14 +28,29 @@ def test_version():
     assert verifier._version("") == (0,)
 
 
-def test_env_cree_depuis_modele_puis_signale_vide(donnees):
-    c = verifier.controle_env()
-    assert not c.ok and "créé" in c.detail
-    assert (donnees / ".env").exists()
-    c = verifier.controle_env()
-    assert not c.ok and "vide" in c.detail
+def test_identifiants_jamais_de_env_cree(donnees, monkeypatch):
+    import identifiants
+
+    monkeypatch.setattr(identifiants, "present", lambda: False)
+    c = verifier.controle_identifiants()
+    assert not c.ok and not c.bloquant and "enregistrer" in c.consigne
+    assert not (donnees / ".env").exists()
+
+
+def test_identifiants_ancien_env_accepte(donnees, monkeypatch):
+    import identifiants
+
+    monkeypatch.setattr(identifiants, "present", lambda: False)
     (donnees / ".env").write_text("utilisateur=x\nmdp=y\n", encoding="utf-8")
-    assert verifier.controle_env().ok
+    c = verifier.controle_identifiants()
+    assert c.ok and "migrer" in c.consigne
+
+
+def test_identifiants_coffre(donnees, monkeypatch):
+    import identifiants
+
+    monkeypatch.setattr(identifiants, "present", lambda: True)
+    assert verifier.controle_identifiants().ok
 
 
 def test_config_creee_depuis_modele_puis_validee(donnees):
